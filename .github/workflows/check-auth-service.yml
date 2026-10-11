@@ -1,0 +1,46 @@
+name: Check OU Escape Route Auth Service
+
+on:
+  pull_request:
+    paths:
+      - 'auth-service/**'
+      - '.github/workflows/check-auth-service.yml'
+  push:
+    branches: [main, master, 'feature/**']
+    paths:
+      - 'auth-service/**'
+      - '.github/workflows/check-auth-service.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: auth-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: auth-service/package-lock.json
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Verify configuration fails closed when unconfigured
+        run: |
+          PORT=8080 node server.js > /tmp/auth-service.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8080/health > /tmp/auth-health.json; then break; fi
+            sleep 1
+          done
+          node -e "const h=require('/tmp/auth-health.json'); if(h.ok!==true || h.configured!==false) process.exit(1)"
