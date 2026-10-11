@@ -60,8 +60,19 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x "$PROJECT_DIR/android/gradlew"
 
+      - name: Check for hard-coded AAPT2 override
+        run: |
+          echo "Checking project Gradle configuration for a custom AAPT2 path..."
+          grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.gradle \
+            -E "aapt2FromMavenOverride|aapt2-maven|AAPT2" "$PROJECT_DIR/android" "$PROJECT_DIR" 2>/dev/null || true
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+
       - name: Build debug APK
-        run: cd "$PROJECT_DIR/android" && ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          cd "$PROJECT_DIR/android"
+          ./gradlew --stop || true
+          ./gradlew assembleDebug --no-daemon --stacktrace -Pandroid.aapt2FromMavenOverride=""
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
