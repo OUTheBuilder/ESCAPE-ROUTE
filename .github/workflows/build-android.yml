@@ -13,10 +13,10 @@ permissions:
 
 jobs:
   build-debug-apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Extract uploaded project ZIP
         run: |
@@ -27,13 +27,15 @@ jobs:
           echo "PROJECT_DIR=extracted-project/OU-Escape-Route-Hybrid" >> "$GITHUB_ENV"
 
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install Android SDK packages
         run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
@@ -42,7 +44,6 @@ jobs:
         run: chmod +x "$PROJECT_DIR/android/gradlew"
 
       - name: Build debug APK
-        working-directory: .
         run: cd "$PROJECT_DIR/android" && ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
