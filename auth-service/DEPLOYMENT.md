@@ -22,9 +22,9 @@ Set these environment variables in the hosting dashboard, not in Git:
 
 Do not put production secrets in this repository or in a client-side app.
 
-## Initialize the database
+## Database initialization
 
-Run the contents of `schema.sql` against the PostgreSQL database using the provider's SQL console or a secure database client. Do this once per database. Do not expose the database publicly unless required and properly secured.
+On startup, the service applies the idempotent `schema.sql` automatically when `DATABASE_URL` and a valid `JWT_SECRET` are configured. The Docker image includes this file. The database account therefore needs permission to create the `app_users` table if it does not already exist. Do not expose the database publicly unless required and properly secured.
 
 ## Verify the deployment
 
