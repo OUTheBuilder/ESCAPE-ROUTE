@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { readFile } from 'node:fs/promises';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -115,4 +116,18 @@ app.post('/v1/auth/login-pin', ready, rateLimit, async (req, res) => {
 });
 app.get('/v1/auth/me', ready, authUser, (req, res) => res.json({ user: req.user }));
 app.use((_req, res) => res.status(404).json({ message: 'Not found.' }));
-app.listen(port, () => console.log(`OU Escape Route auth service listening on ${port}`));
+async function start() {
+  if (pool && jwtSecret.length >= 32) {
+    // Apply the idempotent schema on startup so fresh hosted databases are ready.
+    // Keep the schema limited to this service's own app_users table.
+    const schema = await readFile(new URL('./schema.sql', import.meta.url), 'utf8');
+    await pool.query(schema);
+    console.log('Authentication database schema is ready.');
+  }
+  app.listen(port, () => console.log(`OU Escape Route auth service listening on ${port}`));
+}
+
+start().catch(error => {
+  console.error('Could not start authentication service:', error.message);
+  process.exitCode = 1;
+});
