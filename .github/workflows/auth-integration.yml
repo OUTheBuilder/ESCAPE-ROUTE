@@ -1,0 +1,63 @@
+name: Auth integration tests
+
+on:
+  pull_request:
+    paths:
+      - 'auth-service/**'
+      - '.github/workflows/auth-integration.yml'
+  push:
+    branches: [main, master, 'feature/**']
+    paths:
+      - 'auth-service/**'
+      - '.github/workflows/auth-integration.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ou_auth_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ou_auth_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: auth-service
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install --package-lock-only && npm ci
+      - run: npm run check
+      - name: Prepare disposable test database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -U postgres -d ou_auth_test -v ON_ERROR_STOP=1 -f schema.sql
+      - name: Run authentication integration tests
+        env:
+          PORT: 8081
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/ou_auth_test
+          JWT_SECRET: ci-temporary-secret-not-for-production-12345678901234567890
+          APP_ORIGIN: http://localhost:3000
+          AUTH_TEST_URL: http://127.0.0.1:8081
+        run: |
+          node server.js > /tmp/auth-service.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8081/health >/dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:integration
