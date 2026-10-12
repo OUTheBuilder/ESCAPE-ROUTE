@@ -33,3 +33,10 @@ This is a functional starter, **not a verified exact clone** of the Floot app. T
 ## Next development stage
 
 Once the original app can be inspected or its source/screenshots are available, compare every screen and flow and replace provisional assumptions with verified behavior. Add secure server-side authentication, durable storage, tests, and real route/map integrations only after requirements are confirmed.
+
+
+## Optional account-server authentication
+
+The `auth-service/` directory provides a PostgreSQL-backed API for account registration, email/username plus password sign-in, setting a six-digit account PIN, and **PIN-only sign-in**. When the web app's **Account server URL** is set to the deployed HTTPS API origin, registration/login/PIN setup use this API. Leave it blank to keep using the existing browser-local demo accounts. The local demo and remote account stores are separate.
+
+To deploy the service, review [auth-service/DEPLOYMENT.md](auth-service/DEPLOYMENT.md), configure the Render service and database, and set `APP_ORIGIN` to the exact GitHub Pages origin. The backend is not live merely because it is committed; verify `/health` reports `configured: true` before using remote accounts. The web UI is updated here; the Android APK archive is not rebuilt by this web change.

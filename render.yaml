@@ -1,0 +1,31 @@
+# Render Blueprint for the OU Escape Route authentication API.
+# Review the service and database plan in Render before creating resources.
+services:
+  - type: web
+    name: ou-escape-route-auth
+    runtime: docker
+    plan: free
+    rootDir: auth-service
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ou-escape-route-auth-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: BCRYPT_ROUNDS
+        value: "12"
+      # Set APP_ORIGIN in the Render dashboard to the exact browser origins
+      # that will call this API. Keep empty until the real client origin is known.
+      - key: APP_ORIGIN
+        value: ""
+databases:
+  - name: ou-escape-route-auth-db
+    plan: free
+    databaseName: ou_auth
+    user: ou_auth_user
