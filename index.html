@@ -61,6 +61,41 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:saturate(.5)
 @media(max-width:760px){.layout{grid-template-columns:1fr;gap:15px}.side{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:8px;border-radius:17px}.nav{text-align:left;justify-content:flex-start;font-size:12px;min-height:43px;padding:10px 11px}.nav:hover{transform:translateY(-1px)}.gamegrid{grid-template-columns:repeat(2,minmax(0,1fr))}.top{padding:12px;border-radius:18px}.wide{grid-column:auto}}
 @media(max-width:390px){.side{grid-template-columns:repeat(2,minmax(0,1fr))}.nav{font-size:11px;padding:9px 7px}.gamegrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.game{padding:12px;min-height:130px}.brand h1{font-size:13px}.actions{gap:5px}.hero{padding:20px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Professional control hierarchy and touch-friendly spacing */
+:root{--control-font:clamp(13px,.95rem,15px);--control-radius:13px}
+button,.btn,.tab,.nav{font-family:inherit;-webkit-tap-highlight-color:transparent}
+button,.btn{font-size:var(--control-font);line-height:1.25;font-weight:750;min-height:46px;padding:12px 17px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;white-space:normal;overflow-wrap:anywhere;vertical-align:middle}
+.btn.primary,.btn.pink{font-size:var(--control-font);font-weight:850}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:15px}
+.actions>*{flex:0 1 auto}
+.row{align-items:center;gap:12px}
+.nav{display:flex;align-items:center;gap:10px;min-height:46px;padding:11px 13px;border-radius:12px;font-size:13px;line-height:1.25;font-weight:750;letter-spacing:.005em}
+.tab{min-height:42px;padding:10px 14px;font-size:13px;line-height:1.25}
+.field input,.field select,.field textarea,input,select,textarea{font-family:inherit;font-size:15px;line-height:1.4;min-height:46px}
+.card h3,.game b{line-height:1.35}
+.statrow{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px}
+.stat{display:flex;align-items:center;min-height:42px;line-height:1.35;font-size:13px}
+.item{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.item>span{min-width:0;flex:1 1 160px}
+button:focus-visible,.btn:focus-visible,.nav:focus-visible,.tab:focus-visible{outline:3px solid #72f4ff;outline-offset:3px}
+@media(max-width:760px){
+  .btn,button{min-height:46px;padding:12px 14px}
+  .actions{gap:8px}
+  .actions>*{flex:1 1 auto}
+  .nav{min-height:46px;padding:11px 12px;font-size:12px}
+  .tab{min-height:44px;padding:10px 12px}
+  .top{gap:10px}
+  .card{border-radius:18px}
+}
+@media(max-width:390px){
+  .btn,button{font-size:13px;padding:11px 12px;min-height:44px}
+  .nav{font-size:12px;padding:10px 9px;gap:7px}
+  .tab{font-size:12px;padding:9px 10px}
+  .actions{gap:7px}
+  .statrow{gap:7px}
+  .stat{font-size:12px;padding:9px 10px}
+}
 </style></head><body>
 <section id="auth" class="auth"><div class="authbox"><div class="brand"><div class="logo">ER</div><div><h1>OU ESCAPE ROUTE</h1><p>NEON ARCADE · PLAY YOUR WAY</p></div></div><h2>Welcome back</h2><p class="muted">Choose a sign-in method for this browser demo.</p><div class="tabs"><button class="tab active" data-mode="email">Email</button><button class="tab" data-mode="username">Username</button><button class="tab" data-mode="pin">PIN</button></div><form id="login"><div id="emailFields"><div class="field"><label>Email</label><input id="email" type="email" placeholder="you@example.com" required></div><div class="field"><label>Password</label><input id="epass" type="password" placeholder="Password" required></div></div><div id="userFields" class="hidden"><div class="field"><label>Username</label><input id="username" placeholder="Username"></div><div class="field"><label>Password</label><input id="upass" type="password" placeholder="Password"></div></div><div id="pinFields" class="hidden"><div class="field"><label>Account PIN (4–8 digits)</label><input id="pin" type="password" inputmode="numeric" maxlength="8"></div></div><button class="btn primary" style="width:100%">Enter Game Hub</button></form><div class="row" style="justify-content:center;gap:16px;margin-top:14px;flex-wrap:wrap"><button class="linkbtn" type="button" id="showRegister">Create account</button><button class="linkbtn" type="button" id="showForgot">Forgot password?</button></div><div id="registerPanel" class="hidden"><hr><h2>Create account</h2><form id="registerForm"><div class="field"><label>Display name</label><input id="regName" maxlength="40" required placeholder="Your name"></div><div class="field"><label>Email</label><input id="regEmail" type="email" required placeholder="you@example.com"></div><div class="field"><label>Username</label><input id="regUsername" minlength="3" maxlength="24" required placeholder="Choose a username"></div><div class="field"><label>Password (8+ characters)</label><input id="regPassword" type="password" minlength="8" required autocomplete="new-password"></div><div class="field"><label>Account PIN (optional, 4–8 digits)</label><input id="regPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" placeholder="Set a PIN for PIN sign-in"></div><button class="btn primary" style="width:100%">Create local account</button></form><button class="linkbtn" type="button" id="backLogin">Back to sign in</button></div><div id="forgotPanel" class="hidden"><hr><h2>Reset demo password</h2><p class="muted">This static version cannot email a reset link. Reset is limited to this browser and requires your account email and username.</p><form id="forgotForm"><div class="field"><label>Account email</label><input id="forgotEmail" type="email" required></div><div class="field"><label>Username</label><input id="forgotUsername" required></div><div class="field"><label>New password (8+ characters)</label><input id="forgotPassword" type="password" minlength="8" required autocomplete="new-password"></div><button class="btn primary" style="width:100%">Reset local password</button></form><button class="linkbtn" type="button" id="backLogin2">Back to sign in</button></div><div class="notice">This GitHub Pages build uses browser-local demo accounts, not a secure server. Do not use a password you use elsewhere. Accounts do not sync between devices.</div></div></section>
 <div id="workspace" class="app hidden"><header class="top"><div class="brand" id="brandTap"><div class="logo">ER</div><div><h1>OU ESCAPE ROUTE</h1><p>GAME HUB · NEON ARCADE</p></div></div><div class="actions"><span class="pill">PLAYER: <b id="playerName">GUEST</b></span><button id="logout" class="btn">Sign out</button></div></header><div class="layout"><nav class="side"><button class="nav active" data-page="home">⌂ Game Hub</button><button class="nav" data-page="games">▣ Games</button><button class="nav" data-page="multiplayer">♧ Multiplayer</button><button class="nav" data-page="leaderboard">★ Leaderboard</button><button class="nav" data-page="history">◷ Match History</button><button class="nav" data-page="store">✦ Mini App Store</button><button class="nav" data-page="library">▣ My Library</button><button class="nav" data-page="profile">☺ Profile</button><button class="nav" data-page="accounts">🔐 Premium Account</button><button class="nav" data-page="settings">⚙ Settings</button></nav><main id="main"></main></div><div class="footer">OU Escape Route · browser prototype · local demo data only</div></div>
