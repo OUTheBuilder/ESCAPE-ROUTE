@@ -124,13 +124,21 @@ app.post('/v1/auth/pin', ready, authUser, rateLimit, async (req, res) => {
   } catch (e) { console.error('set PIN failed', e.message); res.status(500).json({ message: 'Could not save PIN.' }); }
 });
 app.post('/v1/auth/login-pin', ready, rateLimit, async (req, res) => {
-  const identifier = typeof req.body?.identifier === 'string' ? req.body.identifier.trim().toLowerCase() : '';
   const pin = req.body?.pin;
-  if (!identifier || !validPin(pin)) return res.status(400).json({ message: 'Enter your email or username and 6-digit PIN.' });
+  if (!validPin(pin)) return res.status(400).json({ message: 'Enter your 6-digit PIN.' });
   try {
-    const result = await pool.query('SELECT id,email,username,pin_hash FROM app_users WHERE email_normalized=$1 OR username_normalized=$1 LIMIT 1', [identifier]);
-    const user = result.rows[0];
-    if (!user?.pin_hash || !(await bcrypt.compare(pin, user.pin_hash))) return res.status(401).json({ message: 'Invalid sign-in details.' });
+    // PIN-only sign-in searches saved PIN hashes. Require exactly one matching
+    // account so identical PINs cannot silently open the wrong Premium account.
+    const result = await pool.query('SELECT id,email,username,pin_hash FROM app_users WHERE pin_hash IS NOT NULL');
+    const matches = [];
+    for (const user of result.rows) {
+      if (await bcrypt.compare(pin, user.pin_hash)) matches.push(user);
+      if (matches.length > 1) break;
+    }
+    if (matches.length !== 1) return res.status(401).json({
+      message: matches.length ? 'This PIN is linked to more than one account. Sign in with your email or username and choose a different PIN.' : 'Invalid PIN, or no account has saved this PIN yet.'
+    });
+    const user = matches[0];
     res.json({ token: await tokenFor(user), user: { id: user.id, email: user.email, username: user.username } });
   } catch (e) { console.error('PIN login failed', e.message); res.status(500).json({ message: 'PIN sign-in failed.' }); }
 });
