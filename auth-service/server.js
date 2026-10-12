@@ -47,7 +47,7 @@ function ready(req, res, next) {
   next();
 }
 function validPassword(v) { return typeof v === 'string' && v.length >= 8 && v.length <= 200; }
-function validPin(v) { return typeof v === 'string' && /^\\d{6}$/.test(v); }
+function validPin(v) { return typeof v === 'string' && /^\d{6}$/.test(v); }
 async function tokenFor(user) {
   return new SignJWT({ username: user.username, email: user.email })
     .setProtectedHeader({ alg: 'HS256' }).setSubject(String(user.id))
@@ -70,7 +70,7 @@ app.post('/v1/auth/register', ready, rateLimit, async (req, res) => {
   const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
   const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
   const password = req.body?.password;
-  if (!/^\\S+@\\S+\\.\\S+$/.test(email) || email.length > 254) return res.status(400).json({ message: 'Enter a valid email address.' });
+  if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) return res.status(400).json({ message: 'Enter a valid email address.' });
   if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(username)) return res.status(400).json({ message: 'Username must be 3–32 characters (letters, numbers, _, ., -).' });
   if (!validPassword(password)) return res.status(400).json({ message: 'Password must be 8–200 characters.' });
   try {
