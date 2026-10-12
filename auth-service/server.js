@@ -23,8 +23,27 @@ const pool = databaseUrl ? new Pool({
 
 app.disable('x-powered-by');
 app.use(helmet());
+const configuredOrigins = (process.env.APP_ORIGIN || '')
+  .split(',')
+  .map(v => v.trim())
+  .filter(Boolean);
+const localWebViewOrigins = new Set([
+  'https://localhost',
+  'http://localhost',
+  'capacitor://localhost',
+  'ionic://localhost',
+  'http://localhost:3000',
+  'http://localhost:5173',
+]);
 app.use(cors({
-  origin: process.env.APP_ORIGIN ? process.env.APP_ORIGIN.split(',').map(v => v.trim()) : false,
+  origin(origin, callback) {
+    // Native Android WebViews may send one of these local origins. Browser
+    // deployments must be explicitly listed in APP_ORIGIN.
+    if (!origin || localWebViewOrigins.has(origin) || configuredOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origin is not allowed by CORS.'));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '16kb' }));
