@@ -1,11 +1,11 @@
-name: Build APK from uploaded Escape Route project
+name: Build OU Escape Route Android APK
 
 on:
   workflow_dispatch:
   push:
     branches: [main, master]
     paths:
-      - 'escape-route-project-icon-updated.zip'
+      - 'OU-Escape-Route-Hybrid-ChatGPT-v3.zip'
       - '.github/workflows/build-android.yml'
 
 permissions:
@@ -14,43 +14,69 @@ permissions:
 jobs:
   build-debug-apk:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
 
-      - name: Extract the uploaded project
+      - name: Extract uploaded project ZIP
         run: |
-          test -f "escape-route-project-icon-updated.zip"
+          test -f "OU-Escape-Route-Hybrid-ChatGPT-v3.zip"
           mkdir -p extracted-project
-          unzip -q "escape-route-project-icon-updated.zip" -d extracted-project
-          test -f "extracted-project/android/gradlew"
-          test -f "extracted-project/android/app/build.gradle"
-          test -f "extracted-project/android/variables.gradle"
-          echo "PROJECT_DIR=extracted-project" >> "$GITHUB_ENV"
-          echo "Android project structure verified."
-          echo "Project root files:"
-          find extracted-project -maxdepth 2 -name package.json -o -name package-lock.json
+          unzip -q "OU-Escape-Route-Hybrid-ChatGPT-v3.zip" -d extracted-project
+          test -f "extracted-project/OU-Escape-Route-Hybrid/android/gradlew"
+          test -f "extracted-project/OU-Escape-Route-Hybrid/pnpm-lock.yaml"
+          echo "PROJECT_DIR=extracted-project/OU-Escape-Route-Hybrid" >> "$GITHUB_ENV"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-
-      - name: Install web and Capacitor dependencies
+      - name: Reset app to landing page and sign out when it goes to background
         run: |
-          cd "$PROJECT_DIR"
-          if [ -f package-lock.json ]; then
-            npm ci --legacy-peer-deps
-          elif [ -f package.json ]; then
-            npm install --legacy-peer-deps
-          else
-            echo "No package.json found at extracted project root."
-            find . -maxdepth 4 -name package.json -print
-            exit 1
-          fi
-          npm run build
-          npx cap sync android
+          python3 - <<'PY'
+          from pathlib import Path
+          project = Path("extracted-project/OU-Escape-Route-Hybrid")
+          script = """<script>
+          (() => {
+            let backgrounded = false;
+            let logoutStarted = false;
+            const signOut = () => {
+              if (logoutStarted) return;
+              logoutStarted = true;
+              try {
+                sessionStorage.setItem("__ouer_return_to_landing", "1");
+                fetch("/_api/auth/logout", {
+                  method: "POST",
+                  credentials: "same-origin",
+                  headers: {"Content-Type": "application/json"},
+                  body: "{}",
+                  keepalive: true
+                }).catch(() => {});
+              } catch (_) {}
+            };
+            document.addEventListener("visibilitychange", () => {
+              if (document.visibilityState === "hidden") {
+                backgrounded = true;
+                signOut();
+              } else if (document.visibilityState === "visible" && backgrounded) {
+                backgrounded = false;
+                logoutStarted = false;
+                try { sessionStorage.removeItem("__ouer_return_to_landing"); } catch (_) {}
+                window.location.replace("/");
+              }
+            });
+            window.addEventListener("pagehide", signOut);
+          })();
+          </script>"""
+          targets = [
+            project / "android/app/src/main/assets/public/index.html",
+            project / "android/app/src/main/assets/public/client/index.html",
+          ]
+          for path in targets:
+            if not path.exists():
+              raise SystemExit(f"Expected app HTML not found: {path}")
+            html = path.read_text()
+            if "__ouer_return_to_landing" not in html:
+              html = html.replace("</head>", script + "</head>", 1)
+              path.write_text(html)
+            print(f"Added background sign-out and landing-page reset: {path}")
+          PY
 
       - name: Set up Java 21
         uses: actions/setup-java@v5
@@ -58,32 +84,51 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK command-line tools
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: extracted-project/OU-Escape-Route-Hybrid/pnpm-lock.yaml
+
+      - name: Install project dependencies
+        run: cd "$PROJECT_DIR" && pnpm install --frozen-lockfile
+
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
 
       - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x "$PROJECT_DIR/android/gradlew"
+
+      - name: Check for hard-coded AAPT2 override
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          echo "Checking project Gradle configuration for a custom AAPT2 path..."
+          grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.gradle \
+            -E "aapt2FromMavenOverride|aapt2-maven|AAPT2" "$PROJECT_DIR/android" "$PROJECT_DIR" 2>/dev/null || true
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
 
       - name: Build debug APK
         run: |
-          chmod +x "$PROJECT_DIR/android/gradlew"
           cd "$PROJECT_DIR/android"
-          ./gradlew assembleDebug --no-daemon --stacktrace
-
-      - name: Verify APK output
-        run: |
-          APK="$PROJECT_DIR/android/app/build/outputs/apk/debug/app-debug.apk"
-          test -s "$APK"
-          ls -lh "$APK"
+          ./gradlew --stop || true
+          ./gradlew assembleDebug --no-daemon --stacktrace -Pandroid.aapt2FromMavenOverride=""
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: OU-Escape-Route-debug-apk
-          path: extracted-project/android/app/build/outputs/apk/debug/app-debug.apk
+          path: extracted-project/OU-Escape-Route-Hybrid/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
