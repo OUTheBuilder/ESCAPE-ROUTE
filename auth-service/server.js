@@ -15,7 +15,10 @@ const databaseUrl = process.env.DATABASE_URL || '';
 const rounds = Math.max(10, Math.min(14, Number(process.env.BCRYPT_ROUNDS || 12)));
 const pool = databaseUrl ? new Pool({
   connectionString: databaseUrl,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : undefined,
+  // Render PostgreSQL uses TLS with a certificate that may not chain to the
+  // container's public CA bundle. Keep TLS enabled, but do not require a public
+  // CA chain for the managed Render database endpoint.
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
 }) : null;
 
 app.disable('x-powered-by');
@@ -43,10 +46,8 @@ function ready(req, res, next) {
   if (jwtSecret.length < 32) return res.status(503).json({ message: 'Authentication service is not configured with a secure JWT_SECRET.' });
   next();
 }
-function cleanEmail(v) { return typeof v === 'string' ? v.trim().toLowerCase() : ''; }
-function cleanUsername(v) { return typeof v === 'string' ? v.trim().toLowerCase() : ''; }
 function validPassword(v) { return typeof v === 'string' && v.length >= 8 && v.length <= 200; }
-function validPin(v) { return typeof v === 'string' && /^\d{6}$/.test(v); }
+function validPin(v) { return typeof v === 'string' && /^\\d{6}$/.test(v); }
 async function tokenFor(user) {
   return new SignJWT({ username: user.username, email: user.email })
     .setProtectedHeader({ alg: 'HS256' }).setSubject(String(user.id))
@@ -69,7 +70,7 @@ app.post('/v1/auth/register', ready, rateLimit, async (req, res) => {
   const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
   const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
   const password = req.body?.password;
-  if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) return res.status(400).json({ message: 'Enter a valid email address.' });
+  if (!/^\\S+@\\S+\\.\\S+$/.test(email) || email.length > 254) return res.status(400).json({ message: 'Enter a valid email address.' });
   if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(username)) return res.status(400).json({ message: 'Username must be 3–32 characters (letters, numbers, _, ., -).' });
   if (!validPassword(password)) return res.status(400).json({ message: 'Password must be 8–200 characters.' });
   try {
@@ -118,8 +119,6 @@ app.get('/v1/auth/me', ready, authUser, (req, res) => res.json({ user: req.user 
 app.use((_req, res) => res.status(404).json({ message: 'Not found.' }));
 async function start() {
   if (pool && jwtSecret.length >= 32) {
-    // Apply the idempotent schema on startup so fresh hosted databases are ready.
-    // Keep the schema limited to this service's own app_users table.
     const schema = await readFile(new URL('./schema.sql', import.meta.url), 'utf8');
     await pool.query(schema);
     console.log('Authentication database schema is ready.');
