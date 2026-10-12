@@ -14,10 +14,10 @@ This repository contains an independent, self-contained web-app starter for OU E
 
 A GitHub Actions workflow is included at `.github/workflows/pages.yml`. It deploys the repository root to GitHub Pages on pushes to `main` and via manual workflow dispatch.
 
-1. Open the repository's **Settings → Pages**.
-2. If asked for a publishing source, select **GitHub Actions**.
-3. Open **Actions** and check the **Deploy OU Escape Route to GitHub Pages** workflow. Wait for a successful deployment.
-4. GitHub will show the actual published URL in the workflow run and in **Settings → Pages**.
+1. Open the repository's **Settings → Pages**: https://github.com/OUTheBuilder/ESCAPE-ROUTE/settings/pages
+2. Under **Build and deployment**, choose **GitHub Actions** as the source and save. The GitHub connection available to this build cannot enable Pages for the repository automatically; a repository owner must enable it here once.
+3. Open **Actions**: https://github.com/OUTheBuilder/ESCAPE-ROUTE/actions and rerun **Deploy independent Escape Route rebuild to GitHub Pages** if it does not start automatically after Pages is enabled.
+4. Wait for a successful workflow run. GitHub will show the actual published URL in the workflow run and in **Settings → Pages**.
 
 The public website could not be fetched during this build session, so the exact live URL is not yet confirmed. Do not assume deployment succeeded until the workflow completes successfully.
 
