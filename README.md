@@ -12,7 +12,7 @@ This repository contains an independent, self-contained web-app starter for OU E
 
 ## Deploying as a web app
 
-A GitHub Actions workflow is included at `.github/workflows/deploy-pages.yml`. It deploys the repository root to GitHub Pages on pushes to `main` and via manual workflow dispatch.
+A GitHub Actions workflow is included at `.github/workflows/pages.yml`. It deploys the repository root to GitHub Pages on pushes to `main` and via manual workflow dispatch.
 
 1. Open the repository's **Settings → Pages**.
 2. If asked for a publishing source, select **GitHub Actions**.
