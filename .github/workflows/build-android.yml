@@ -1,4 +1,4 @@
-name: Build OU Escape Route Android APK
+name: Build OU Escape Route Android APK from Source ZIP
 
 on:
   workflow_dispatch:
