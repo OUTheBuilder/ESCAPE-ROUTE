@@ -27,6 +27,21 @@ jobs:
           test -f "extracted-project/OU-Escape-Route-Hybrid/pnpm-lock.yaml"
           echo "PROJECT_DIR=extracted-project/OU-Escape-Route-Hybrid" >> "$GITHUB_ENV"
 
+      - name: Apply email, username, and PIN sign-in UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          project = Path("extracted-project/OU-Escape-Route-Hybrid")
+          replacement = '''import{S as u,o as j,s as g,y as S,r,j as e,N as E,k as h}from"./vendor-CYxKxS8R.js";import{H as v}from"./Helmet-Ba_-bftk.js";import{u as b,A as C,I as x,E as L,B as N}from"./index-DNJc6yMG.js";import"./index-BbP3371Q.js";function B(){const{authState:o,onLogin:i}=b(),n=S(),[t,l]=r.useState(""),[c,f]=r.useState(""),[p,d]=r.useState(""),[m,y]=r.useState(""),[w,a]=r.useState(""),[busy,z]=r.useState(!1),[err,q]=r.useState(""),[mode,k]=r.useState("password");if(o.type==="authenticated")return e.jsx(E,{to:"/",replace:!0});const login=async(identifier,password)=>{const response=await fetch("https://ou-escape-route-auth.onrender.com/v1/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({identifier,password})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||data.error||"Sign in failed. Check your details.");return data};const submit=async ev=>{ev.preventDefault();q("");z(!0);try{let data;if(mode==="pin"){const response=await fetch("https://ou-escape-route-auth.onrender.com/v1/auth/login-pin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({identifier:t,pin:p})});data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||data.error||"PIN sign-in failed.")}else{data=await login(t,c);if(mode==="setpin"){if(!/^\\d{6}$/.test(p))throw new Error("Choose a 6-digit PIN.");const response=await fetch("https://ou-escape-route-auth.onrender.com/v1/auth/pin",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+data.token},body:JSON.stringify({pin:p})});const pinData=await response.json().catch(()=>({}));if(!response.ok)throw new Error(pinData.message||pinData.error||"Could not save PIN.")}}if(data.token)localStorage.setItem("ouer_auth_token",data.token);if(!data.user)throw new Error("The auth service did not return a user profile.");i(data.user);n("/",{replace:!0})}catch(ex){q(ex instanceof Error?ex.message:"Sign in failed.")}finally{z(false)}};return e.jsxs(C,{title:"Welcome back",onSubmit:submit,children:[e.jsx(v,{children:e.jsx("title",{children:"Sign in · OU Escape Route"})}),e.jsxs("div",{style:{display:"flex",gap:8,marginBottom:16},children:[e.jsx("button",{type:"button",onClick:()=>k("password"),children:"Email / Username + Password"}),e.jsx("button",{type:"button",onClick:()=>k("pin"),children:"PIN"}),e.jsx("button",{type:"button",onClick:()=>k("setpin"),children:"Set PIN"})]}),e.jsx(x,{type:"text",placeholder:"Email address or username",autoComplete:"username",value:t,onChange:a=>l(a.target.value),required:!0}),mode!=="pin"&&e.jsx(x,{type:"password",placeholder:"Password",autoComplete:"current-password",value:c,onChange:a=>f(a.target.value),required:!0}),mode!=="password"&&e.jsx(x,{type:"password",placeholder:mode==="pin"?"6-digit PIN":"Create 6-digit PIN",inputMode:"numeric",autoComplete:"off",value:p,onChange:a=>d(a.target.value.replace(/\\D/g,"").slice(0,6)),required:!0}),e.jsx(L,{children:err}),e.jsx(N,{type:"submit",variant:"primary",size:"lg",disabled:busy,children:busy?"Please wait…":mode==="pin"?"Sign in with PIN":mode==="setpin"?"Save PIN and sign in":"Sign In"}),e.jsx("p",{children:e.jsx(h,{to:"/forgot-password",children:"Forgot password?"})}),e.jsxs("p",{children:["No account? ",e.jsx(h,{to:"/register",children:"Create one"})]})]})}export{B as default};'''
+          targets = [
+            project / "android/app/src/main/assets/public/_assets/login-Db9WOtM3.js",
+            project / "android/app/src/main/assets/public/client/_assets/login-Db9WOtM3.js",
+          ]
+          for path in targets:
+            if not path.exists(): raise SystemExit(f"Login bundle not found: {path}")
+            path.write_text(replacement)
+            print(f"Updated sign-in UI: {path}")
+          PY
       - name: Reset app to landing page and sign out when it goes to background
         run: |
           python3 - <<'PY'
