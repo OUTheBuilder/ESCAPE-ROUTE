@@ -11,6 +11,9 @@ on:
 permissions:
   contents: read
 
+env:
+  ANDROID_SDK_ROOT: ${{ runner.tool_cache }}/android-sdk
+
 jobs:
   build-debug-apk:
     runs-on: ubuntu-24.04
@@ -28,11 +31,28 @@ jobs:
           test -f "extracted-project/pnpm-lock.yaml"
           test -f "extracted-project/android/app/src/main/assets/public/index.html"
 
-      - name: Set up Java 18
+      - name: Make Gradle wrapper executable
+        run: chmod +x extracted-project/android/gradlew
+
+      - name: Set up Java 18 (Temurin)
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '18'
+
+      - name: Print Java & Gradle diagnostics
+        working-directory: extracted-project/android
+        run: |
+          echo "=== java -version ==="
+          java -version || true
+          echo "=== gradlew -v ==="
+          ./gradlew -v || true
+          echo "=== gradle-wrapper.properties ==="
+          if [ -f gradle/wrapper/gradle-wrapper.properties ]; then cat gradle/wrapper/gradle-wrapper.properties; fi
+          echo "=== Search for Android Gradle Plugin in build files ==="
+          grep -R --line-number "com.android.tools.build:gradle" . || true
+          echo "=== Show top of android/build.gradle (if present) ==="
+          if [ -f build.gradle ]; then head -n 200 build.gradle; fi
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -50,7 +70,7 @@ jobs:
       - name: Install project dependencies
         run: cd extracted-project && pnpm install --frozen-lockfile
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK (platform-tools)
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
@@ -60,13 +80,10 @@ jobs:
           yes | sdkmanager --licenses
           sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "cmdline-tools;latest"
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x extracted-project/android/gradlew
-
       - name: Build debug APK from the uploaded project
+        working-directory: extracted-project/android
         run: |
-          cd extracted-project/android
-          ./gradlew --stop || true
+          ./gradlew --no-daemon --stop || true
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
